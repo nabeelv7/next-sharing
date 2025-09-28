@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, Loader2 } from "lucide-react";
 
 export default function HomePage() {
   const [files, setFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const dropRef = useRef(null);
 
   // connect to SSE
@@ -25,7 +26,11 @@ export default function HomePage() {
   const uploadFile = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+
+    setIsUploading(true);
     await fetch("/api/upload", { method: "POST", body: formData });
+    setIsUploading(false);
+
     e.target.reset();
   };
 
@@ -33,12 +38,17 @@ export default function HomePage() {
   const handleDrop = async (e) => {
     e.preventDefault();
     setDragActive(false);
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+    const droppedFiles = e.dataTransfer.files;
+    if (!droppedFiles || droppedFiles.length === 0) return;
 
     const formData = new FormData();
-    formData.append("file", file);
+    for (const file of droppedFiles) {
+      formData.append("files", file);
+    }
+
+    setIsUploading(true);
     await fetch("/api/upload", { method: "POST", body: formData });
+    setIsUploading(false);
   };
 
   const handleDragOver = (e) => {
@@ -51,7 +61,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center px-6 py-20 dark md:justify-center">
+    <div className="min-h-screen overflow-y-scroll flex flex-col items-center px-6 py-20 pb-10 bg-background dark">
       <h1 className="text-3xl font-bold mb-6 text-foreground">
         🌐 Live File Share
       </h1>
@@ -84,14 +94,30 @@ export default function HomePage() {
             onSubmit={uploadFile}
             className="flex gap-3 items-center w-full"
           >
-            <Input type="file" name="file" required className="flex-1" />
-            <Button type="submit">Upload</Button>
+            <Input
+              type="file"
+              name="files"
+              multiple
+              required
+              className="flex-1"
+            />
+            <Button
+              type="submit"
+              disabled={isUploading}
+              className="w-28 flex justify-center"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Upload"
+              )}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
       {/* File List */}
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg overflow-y-scroll">
         <CardHeader>
           <CardTitle>📂 Available Files</CardTitle>
         </CardHeader>

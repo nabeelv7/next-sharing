@@ -1,21 +1,20 @@
-// app/api/events/route.js
 import { memoryStore } from "@/lib/store";
 
 export async function GET() {
   return new Response(
     new ReadableStream({
       start(controller) {
-        // send initial list of files
-        controller.enqueue(`data: ${JSON.stringify(memoryStore)}\n\n`);
-
-        // store callback to notify later
-        memoryStore.onChange = () => {
-          controller.enqueue(`data: ${JSON.stringify(memoryStore)}\n\n`);
+        const send = () => {
+          controller.enqueue(
+            `data: ${JSON.stringify(memoryStore.getFiles())}\n\n`
+          );
         };
-      },
-      cancel() {
-        // optional cleanup if needed
-        memoryStore.onChange = null;
+
+        // Send initial files
+        send();
+
+        // Subscribe to changes
+        memoryStore.onChange = send;
       },
     }),
     {

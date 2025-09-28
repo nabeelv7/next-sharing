@@ -1,19 +1,15 @@
-// app/api/upload/route.js
-import { NextResponse } from "next/server";
-import { addFile } from "@/lib/store";
+import { memoryStore } from "@/lib/store";
 
 export async function POST(request) {
   const formData = await request.formData();
-  const file = formData.get("file");
+  const files = formData.getAll("files");
 
-  if (!file) {
-    return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+  for (const file of files) {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    memoryStore.addFile({ name: file.name, data: buffer });
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  addFile({ name: file.name, data: buffer });
-
-  return NextResponse.json({ success: true });
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
